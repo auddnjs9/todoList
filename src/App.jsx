@@ -7,6 +7,9 @@ import './App.css';
 function App() {
   const [input, setInput] = useState('');
   const [todoList, setTodoList] = useState([]);
+  const [count, setCount] = useState(0);
+  const [editingTodo, setEditingTodo] = useState({ id: null, content: '' });
+
   const dataId = useRef(0);
   const today = moment().format('YYYY년 MM월 DD일');
 
@@ -18,6 +21,7 @@ function App() {
     const todo = {
       id: dataId.current,
       content: input,
+      isActive: true,
     };
     dataId.current += 1;
     if (input !== '') {
@@ -35,16 +39,38 @@ function App() {
   };
 
   const onDelete = targetId => {
-    const newTodoList = todoList.filter(it => it.id !== targetId);
-    setTodoList(newTodoList);
+    setTodoList(todoList.filter(it => it.id !== targetId));
   };
 
-  const [count, setCount] = useState(0);
+  const onToggle = id => {
+    setTodoList(
+      todoList.map(item =>
+        item.id === id ? { ...item, isActive: !item.isActive } : item
+      )
+    );
+  };
+
+  const onEdit = (id, newContent) => {
+    setTodoList(
+      todoList.map(it =>
+        it.id === id
+          ? { ...it, content: newContent, isActive: !it.isActive }
+          : it
+      )
+    );
+    setEditingTodo({ id: null, content: '' }); // 초기화
+  };
+
+  const onEditClick = (id, content) => {
+    setEditingTodo({ id, content });
+  };
+
   useEffect(() => {
     setCount(todoList.length);
-  }, [todoList]);
+  }, [todoList, input]);
 
   console.log(todoList);
+
   return (
     <Container>
       <Head today={today} count={count} />
@@ -58,12 +84,34 @@ function App() {
         />
         <TodoBtn onClick={todoAddHandler}>추가</TodoBtn>
       </InputBox>
-
       {todoList &&
         todoList.map(item => (
           <List key={item.id}>
-            {item.content}
-            <button onClick={() => onDelete(item.id)}>삭제</button>
+            {item.isActive ? (
+              <>
+                <Item
+                  onClick={() => {
+                    onToggle(item.id);
+                    onEditClick(item.id, item.content);
+                  }}
+                >
+                  {item.content}
+                </Item>
+                <TodoBtn onClick={() => onDelete(item.id)}>X</TodoBtn>
+              </>
+            ) : (
+              <>
+                <ItemChange
+                  value={editingTodo.id === item.id && editingTodo.content}
+                  onChange={e =>
+                    setEditingTodo({ id: item.id, content: e.target.value })
+                  }
+                />
+                <ChangeBtn onClick={() => onEdit(item.id, editingTodo.content)}>
+                  확인
+                </ChangeBtn>
+              </>
+            )}
           </List>
         ))}
     </Container>
@@ -122,10 +170,29 @@ const Line = styled.div`
 
 const List = styled.div`
   display: flex;
+  justify-content: space-between;
   flex-direction: row;
   width: 500px;
   font-size: 20px;
   margin: 0 auto 20px;
+`;
+
+const Item = styled.div`
+  width: 430px;
+  cursor: pointer;
+`;
+
+const ItemChange = styled.input`
+  width: 450px;
+  height: 30px;
+  border: none;
+  border-bottom: 1px solid black;
+  background-color: transparent;
+  outline: none;
+`;
+
+const ChangeBtn = styled(TodoBtn)`
+  font-size: 16px;
 `;
 
 export default App;
